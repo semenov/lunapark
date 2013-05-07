@@ -1,0 +1,19 @@
+{
+  "name": "flow",
+  "version": "0.0.0",
+  "description": "ERROR: No README.md file found!",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "author": "",
+  "license": "BSD",
+  "dependencies": {
+    "express": "~3.2.2",
+    "underscore": "~1.4.4",
+    "mongoose": "~3.6.9",
+    "browserify": "~2.13.2",
+    "crossroads": "~0.12.0"
+  }
+}

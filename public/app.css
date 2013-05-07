@@ -1,0 +1,60 @@
+/* app.css */
+
+.container {
+    width: 800px;
+    margin: 0 auto;
+}
+
+
+.logo {
+    font-family: 'Noto Serif', serif;
+    font-size: 1.4em;
+}
+
+.footer {
+    text-align: center;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Noto Serif', serif;
+    font-weight: normal;
+}
+
+body, input, button {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+}
+
+input {
+    width: 100%;
+}
+
+input.important {
+    font-size: 1.2em;
+    padding: 5px;
+}
+
+button {
+    background-color: #DDD;
+    border-width: 0;
+    padding: 10px;
+    margin: 0;
+    border-radius: 5px;
+}
+
+.project-list-item {
+    font-size: 1.4em;
+}
+
+.action-panel {
+    margin: 10px 0;
+}
+
+a {
+    color: #1B94E0;
+}
+
+.action-panel a {
+    font-size: 1em;
+    color: #1DCC7A;
+}
