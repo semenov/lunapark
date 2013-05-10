@@ -10,12 +10,14 @@ module.exports = {
                         // Novo Serif google font
                         ['css', 
                             'http://fonts.googleapis.com/css?family=Noto+Serif:400,700,400italic&subset=latin,cyrillic',
+                            '/css/bootstrap.min.css',
                             '/app.css'
                         ],
                         ['charset', 'utf-8'],
-                        ['title', 'Flow'],
+                        ['title', 'Lunapark'],
                         ['js', 
                             '//ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js',
+                            '/js/bootstrap.min.js',
                             '/app.js'
                         ]
 
@@ -70,8 +72,12 @@ module.exports = {
         var obj = _.first(parts);
         var method = _.last(parts);
         var url = ['', obj, method].concat(params).join('/');
+        var classes = ['go'];
+        if (attrs.class) {
+            classes.push(attrs.class);
+        }
 
-        return ['a', { href: url, class: 'go' }, content];
+        return ['a', { href: url, class: classes }, content];
     },
 
     'action-panel': function(attrs, content) {
@@ -88,7 +94,7 @@ module.exports = {
                 return ['div', {class: 'project-list-item'}, 
                     ['go', 
                         { 
-                            action: ['project.show', project.codename] 
+                            action: ['project.show', project.code] 
                         }, 
                         project.name
                     ]
@@ -98,7 +104,7 @@ module.exports = {
     },
 
     'page-title': function(attrs, content) {
-        return ['h1', content];
+        return ['h2', content];
     },
 
     'project-form': function(attrs, content) {
@@ -127,8 +133,134 @@ module.exports = {
         return [
             ['page-title', attrs.project.name],
             ['action-panel', 
-                ['go', { action: ['ticket.new', attrs.project.codename] }, 'Создать тикет']
+                ['ul', { class: 'inline' },
+                    ['li',
+                        ['go', { action: ['ticket.new', attrs.project.code], class: 'btn btn-small' }, 
+                            ['i',  { class: 'icon-plus-sign' }], ' ',
+                            'Создать тикет'
+                        ]
+                    ],
+                    ['li',
+                        ['go', { action: ['ticket.list', attrs.project.code], class: 'btn btn-small' }, 
+                            ['i',  { class: 'icon-th-list' }], ' ',
+                            'Тикеты'
+                        ]
+                    ]
+                ]
             ]
+        ];
+    },  
+
+    'ticket-new': function(attrs, content) {
+        return [
+            ['project-title', { project:  attrs.project }],
+            ['legend', 'Новый тикет'],
+            ['ticket-form']
+        ];
+    },
+
+    'ticket-form': function(attrs, content) {
+        return (
+            ['form', { class: 'ticket-form form-horizontal' },
+                ['if', attrs.number,
+                    ['div', { class: 'control-group' },
+                        ['label', { class: 'control-label' }, 'Тикет'],
+                        ['div', { class: 'controls' }, 
+                            ['go', 
+                                { action: ['ticket.show', attrs.number], class: 'ticket-number' }, 
+                                '#', attrs.number
+                            ]
+                        ]
+                    ],
+                ],
+                ['div', { class: 'control-group' },
+                    ['label', { class: 'control-label' }, 'Название'],
+                    ['div', { class: 'controls' },
+                        ['input', {
+                            type: 'text', 
+                            class: 'ticket-form-name input-block-level', 
+                            placeholder: 'Название',
+                            value: attrs.title || ''
+                        }],
+                    ]
+                ],
+                ['div', { class: 'control-group' },
+                    ['label', { class: 'control-label' }, 'Описание'],
+                    ['div', { class: 'controls' },
+                        ['textarea', {
+                            class: 'ticket-form-description input-block-level', 
+                            rows: 12,
+                            placeholder: 'Описание'
+                        }, attrs.description || '']
+                    ]
+                ],
+                ['div', { class: 'control-group' },
+                    ['div', { class: 'controls' },
+                        ['button', { class: 'btn btn-success' }, 'Сохранить']
+                    ]
+                ]
+            ]
+        )
+    },
+
+    'project-title': function(attrs, content) {
+        return (
+            ['page-title', 
+                ['go', { action: ['project.show', attrs.project.code] }, attrs.project.name]
+            ]
+        );
+    },
+
+    'ticket-info': function(attrs, content) {
+        return [
+            ['project-title', { project: attrs.ticket.project }],
+            ['action-panel', 
+                ['ul', { class: 'inline' },
+                    ['li',
+                        ['go', { action: ['ticket.edit', attrs.ticket.number], class: 'btn btn-small' }, 
+                            ['i', { class: 'icon-edit' }], ' ',
+                            'Редактировать'
+                        ]
+                    ],
+                    ['li',
+                        ['button', { class: 'ticket-delete-button btn btn-small' }, 
+                            ['i', { class: 'icon-trash' }], ' ',
+                            'Удалить'
+                        ]
+                    ]
+                ]
+            ],
+            ['h3', attrs.ticket.title],
+            ['div', attrs.ticket.description]
+        ];
+    },
+
+    'ticket-edit': function(attrs, content) {
+        return [
+            ['project-title', { project: attrs.ticket.project }],
+            ['ticket-form', attrs.ticket]
+        ];
+    },
+
+    'ticket-list': function(attrs, content) {
+        return [
+            ['project-title', { project: attrs.project }],
+            ['action-panel',
+                ['go', { action: ['ticket.new', attrs.project.code], class: 'btn btn-small' }, 
+                    ['i',  { class: 'icon-plus-sign' }], ' ',
+                    'Создать тикет'
+                ]
+            ],
+            ['map', attrs.tickets, function(ticket) {
+                return ['div', {class: 'ticket-list-item'}, 
+                    ['go', 
+                        { 
+                            action: ['ticket.show', ticket.number] 
+                        }, 
+                        ticket.title
+                    ]
+                ];
+            }]
         ];
     },
 }
