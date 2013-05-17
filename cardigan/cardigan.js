@@ -68,7 +68,7 @@ module.exports = function() {
             var attrs = _.first(content);
 
             // Проверить, являются ли атрибуты настоящим объектом
-            if (_.isObject(attrs) && !_.isArray(attrs)) {
+            if (typeof attrs == 'object' && attrs.constructor == Object) {
                 content = _.rest(content);
             } else {
                 attrs = {};
@@ -94,9 +94,9 @@ module.exports = function() {
             return cardigan(result);
         },
 
-        // function: function(fn) {
-        //     return cardigan(fn());
-        // }
+        function: function(fn) {
+            return cardigan(fn());
+        }
     }
 
     function cardigan(item) {
@@ -115,6 +115,8 @@ module.exports = function() {
             }
         } else if (_.isString(item)) {
             type = 'string';
+        } else if (_.isFunction(item)) {
+            type = 'function';
         } else if (_.isNull(item) || _.isUndefined(item)) {
             type = 'null';
         }
@@ -122,7 +124,6 @@ module.exports = function() {
         var processor = processors[type];
 
         if (!processor) {
-            console.log(item);
             throw 'ParsingError';
         }
 

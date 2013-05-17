@@ -64,6 +64,15 @@ module.exports = {
         }      
     },
 
+    unless: function(attrs, content) {
+        var arr = realArrayFromSet(content);
+        var condition = _.first(arr);
+        var content = _.rest(arr);
+        if (!condition) {
+            return content;
+        }      
+    },
+
     charset: function(attrs, content) {
         return ['meta', { charset: content }];
     },

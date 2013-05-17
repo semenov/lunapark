@@ -26,7 +26,9 @@ app.all('/backend/:method', function(req, res) {
     var action = backend[method];
 
     action(req.body, function(err, result) {
-        res.send(result);
+        setTimeout(function() {
+            res.send(result);
+        }, 3000)
     });
 });
 

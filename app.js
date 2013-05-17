@@ -17,6 +17,61 @@ function backend(method, params, callback) {
     });
 }
 
+function serializeCacheKey(key) {
+    var serializedKey;
+    if (_.isArray(key)) {
+        serializedKey = key.join('.');
+    } else {
+        serializedKey = key;
+    }
+
+    return serializedKey;
+}
+
+var cache = {
+    set: function(key, val) {
+        var serializedKey = serializeCacheKey(key);
+        var serializedVal = JSON.stringify(val);
+        localStorage[serializedKey] = serializedVal;
+    },
+
+    get: function(key) {
+        var serializedKey = serializeCacheKey(key);
+        var serializedVal = localStorage[serializedKey];
+        if (serializedVal !== undefined) {
+            return JSON.parse(serializedVal);
+        }
+    }
+};
+
+var stopwatch = function(timerName) {
+    var startTime;
+    var stopTime;
+    var duration;
+    return {
+        start: function() {
+            startTime = new Date();
+            console.log(timerName, 'start');
+        },
+
+        stop: function() {
+            stopTime = new Date();
+            duration = stopTime - startTime;
+            console.log(timerName, duration);
+        }
+    };
+};
+
+var preloader = {
+    show: function() {
+        element('preloader').show();
+    },
+
+    hide: function() {
+        element('preloader').hide();
+    }
+};
+
 function element(className) {
     return $('.' + className);
 }
@@ -67,15 +122,30 @@ function processUrl(url) {
 
     var action = parseUrl(url);
 
-    try {
+    if (actions[action.obj] && actions[action.obj][action.method]) {
         actions[action.obj][action.method].apply(null, action.params);
-    } catch (e) {
+    } else {
         content(['not-found']);
-    }   
+    } 
 }
 
 window.onpopstate = function() {
     processUrl(window.location.pathname);
+}
+
+function updateProjectTitle(projectCode) {
+    backend('project.get', {code: projectCode}, function(err, project) {
+        cache.set(['project', projectCode], project);
+
+        element('project-title').replaceWith(c(
+            ['project-title', { project: project }]
+        ));
+    }); 
+}
+
+function projectCodeFromTicketNumber(ticketNumber) {
+    var parts = ticketNumber.split('-');
+    return _.first(parts);
 }
 
 var actions = {
@@ -119,76 +189,119 @@ var actions = {
     },
 
     ticket: {
+
         new: function(projectCode) {
-            backend('project.get', {code: projectCode}, function(err, project) {
-                content(
-                    ['ticket-new', { project: project }]
-                );
+            var project = cache.get(['project', projectCode]);
 
-                element('ticket-form').on('submit', function(e) {
-                    e.preventDefault();
-                    var ticketTitle = element('ticket-form-name').val();
-                    var ticketDescription = element('ticket-form-description').val();
+            content(
+                ['ticket-new', { project: project }]
+            );
 
-                    var ticketParams = {
-                        title: ticketTitle,
-                        description: ticketDescription,
-                        projectCode: projectCode
-                    };
+            updateProjectTitle(projectCode);
 
-                    backend('ticket.create', ticketParams, function(err, ticket) {
-                        console.log('ticket', ticket);
-                        go('ticket.show', [ticket.number]);
-                    });
+            element('ticket-form').on('submit', function(e) {
+                e.preventDefault();
+                element('ticket-save-button').button('loading');
+
+                var ticketTitle = element('ticket-form-name').val();
+                var ticketDescription = element('ticket-form-description').val();
+
+                var ticketParams = {
+                    title: ticketTitle,
+                    description: ticketDescription,
+                    projectCode: projectCode
+                };
+
+                backend('ticket.create', ticketParams, function(err, ticket) {
+                    console.log('ticket.create', ticket);
+                    cache.set(['ticket', ticket.number], ticket);
+                    go('ticket.show', [ticket.number]);
                 });
+            });
+
+            backend('project.get', {code: projectCode}, function(err, project) {
+                cache.set(['project', projectCode], project);
+
+                element('project-title').replaceWith(c(
+                    ['project-title', { project: project }]
+                ));
             });           
         },
 
         show: function(ticketNumber) {
-            backend('ticket.get', { number: ticketNumber }, function(err, ticket) {
-                content(
-                    ['ticket-info', { ticket: ticket }]
-                );
+            var projectCode = projectCodeFromTicketNumber(ticketNumber);
+            var project = cache.get(['project', projectCode]);
+            var ticket = cache.get(['ticket', ticketNumber]);
+            content(
+                ['ticket-info-page', { ticket: ticket, ticketNumber: ticketNumber, project: project }]
+            );
 
-                element('ticket-delete-button').on('click', function(e) {
-                    e.preventDefault(); 
-                    backend('ticket.delete', { number: ticketNumber }, function(err) {
-                        go('ticket.list', [ticket.project.code]);
-                    });
+            updateProjectTitle(projectCode);
+
+            element('ticket-delete-button').on('click', function(e) {
+                e.preventDefault(); 
+                element('ticket-delete-button').button('loading');
+                backend('ticket.delete', { number: ticketNumber }, function(err) {
+                    go('ticket.list', [projectCode]);
                 });
+            });
+
+            backend('ticket.get', { number: ticketNumber }, function(err, ticket) {
+                cache.set(['ticket', ticket.number], ticket);
+                element('ticket-info').replaceWith(c(
+                    ['ticket-info', { ticket: ticket }]
+                ));      
+
             });
         },
 
         edit: function(ticketNumber) {
+            var projectCode = projectCodeFromTicketNumber(ticketNumber);
+            var project = cache.get(['project', projectCode]);
+            var ticket = cache.get(['ticket', ticketNumber]);
+
+            content(
+                ['ticket-edit', { ticketNumber: ticketNumber, ticket: ticket, project: project }]
+            );
+
+            element('ticket-form').on('submit', function(e) {
+                e.preventDefault();
+
+                element('ticket-save-button').button('loading');
+
+                var ticketTitle = element('ticket-form-name').val();
+                var ticketDescription = element('ticket-form-description').val();
+
+                var ticketParams = {
+                    number: ticketNumber,
+                    title: ticketTitle,
+                    description: ticketDescription
+                };
+
+                backend('ticket.update', ticketParams, function(err, ticket) {
+                    cache.set(['ticket', ticket.number], ticket);
+                    go('ticket.show', [ticket.number]);
+                });
+            });
+
             backend('ticket.get', { number: ticketNumber }, function(err, ticket) {
-                content(
-                    ['ticket-edit', { ticket: ticket }]
-                );
-
-                element('ticket-form').on('submit', function(e) {
-                    e.preventDefault();
-                    var ticketTitle = element('ticket-form-name').val();
-                    var ticketDescription = element('ticket-form-description').val();
-
-                    var ticketParams = {
-                        number: ticketNumber,
-                        title: ticketTitle,
-                        description: ticketDescription
-                    };
-
-                    backend('ticket.update', ticketParams, function(err, ticket) {
-                        go('ticket.show', [ticket.number]);
-                    });
-                });  
+                cache.set(['ticket', ticket.number], ticket);
+                element('ticket-form-name').val(ticket.title);
+                element('ticket-form-description').val(ticket.description);
             });            
         },
 
         list: function(projectCode) {
-            backend('project.get', { code: projectCode }, function(err, project) {
-                backend('ticket.list', { project: project._id}, function(err, tickets) {
-                    content(
-                        ['ticket-list', { project: project,  tickets: tickets }]
-                    );
+            var project = cache.get(['project', projectCode]);
+
+            backend('ticket.list', { projectCode: projectCode }, function(err, tickets) {
+                content(
+                    ['ticket-list-page', { project: project, projectCode: projectCode, tickets: tickets }]
+                );
+                updateProjectTitle(projectCode);
+
+                _.each(tickets, function(ticket) {
+                    cache.set(['ticket', ticket.number], ticket);
                 });
             });           
         },

@@ -57,10 +57,12 @@ module.exports = {
     },
 
     'ticket.list': function(params, callback) {
-        Ticket
-            .find({ project: params.project })
-            .sort('-created')
-            .exec(callback);
+        Project.findOne({ code: params.projectCode }, function(err, project) {
+            Ticket
+                .find({ project: project._id })
+                .sort('-created')
+                .exec(callback);            
+        });
     }, 
 
     'ticket.delete': function(params, callback) {
